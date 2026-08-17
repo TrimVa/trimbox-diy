@@ -1,7 +1,5 @@
 name: Compilation du firmware
 
-# Se dÃ©clenche Ã  chaque modification du code, et manuellement depuis
-# l'onglet Actions (bouton Â« Run workflow Â»), y compris depuis un tÃ©lÃ©phone.
 on:
   push:
     paths:
@@ -12,9 +10,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write        # nÃ©cessaire pour crÃ©er une release sur un tag
+
 env:
-  # Version du core figÃ©e : garantit que la compilation en ligne produit
-  # exactement le mÃªme binaire que la compilation locale.
+  # Version du core figÃ©e : la compilation en ligne produit ainsi exactement
+  # le mÃªme binaire que la compilation locale.
   CORE: Seeeduino:nrf52@1.1.13
   FQBN: Seeeduino:nrf52:xiaonRF52840Sense
   INDEX: https://files.seeedstudio.com/arduino/package_seeeduino_boards_index.json
@@ -26,65 +27,87 @@ jobs:
 
     steps:
       - name: RÃ©cupÃ©ration du dÃ©pÃ´t
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
+      # Installation par le script officiel plutÃ´t que par l'action
+      # arduino/setup-arduino-cli : celle-ci tourne encore sur Node 20 et
+      # provoque un avertissement de dÃ©prÃ©ciation Ã  chaque compilation.
       - name: Installation d'arduino-cli
-        uses: arduino/setup-arduino-cli@v2
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh \
+            | BINDIR="$HOME/.local/bin" sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/arduino-cli" version
 
-      # Le core pÃ¨se plusieurs centaines de Mo : le garder en cache fait
-      # passer les compilations suivantes de ~4 min Ã  ~1 min.
+      # Le core pÃ¨se plusieurs centaines de Mo : le cache fait passer les
+      # compilations suivantes de plusieurs minutes Ã  environ une minute.
       - name: Cache du core et des bibliothÃ¨ques
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.arduino15
             ~/Arduino/libraries
-          key: arduino-${{ env.CORE }}-v3
+          key: arduino-${{ env.CORE }}-v4
 
       - name: Installation du core Seeed nRF52
         run: |
+          set -euo pipefail
           arduino-cli config init --overwrite
           arduino-cli config add board_manager.additional_urls "$INDEX"
           arduino-cli core update-index
           arduino-cli core install "$CORE"
+          echo "--- cores installÃ©s ---"
+          arduino-cli core list
 
-      # On n'installe QUE les bibliothÃ¨ques absentes du core.
-      # Adafruit TinyUSB, SdFat et Adafruit SPIFlash sont fournis par le core :
-      # les rÃ©installer recrÃ©erait le conflit de type Â« File Â» qui casse la
-      # compilation de bonding.cpp dans Bluefruit.
+      # On n'installe QUE les bibliothÃ¨ques absentes du core. Adafruit TinyUSB,
+      # SdFat et Adafruit SPIFlash sont fournis par le core : les rÃ©installer
+      # recrÃ©erait l'ambiguÃ¯tÃ© du type Â« File Â» qui casse bonding.cpp.
       - name: Installation des bibliothÃ¨ques
         run: |
+          set -uo pipefail
           arduino-cli lib update-index
-          arduino-cli lib install "SparkFun u-blox GNSS Arduino Library"
-          # Le nom exact de la bibliothÃ¨que LSM6DS3 a variÃ© selon les versions
-          # de l'index : on essaie les variantes connues, puis on se rabat sur
-          # le dÃ©pÃ´t officiel Seeed.
-          if ! arduino-cli lib install "Seeed Arduino LSM6DS3"; then
-            echo "::warning::Nom d'index introuvable, installation depuis GitHub."
+
+          install_lib () {
+            echo "::group::Installation de $1"
+            if arduino-cli lib install "$1"; then
+              echo "$1 : installÃ©e depuis l'index"
+              echo "::endgroup::"; return 0
+            fi
+            echo "::warning::'$1' absente de l'index, tentative via GitHub ($2)"
             arduino-cli config set library.enable_unsafe_install true
-            arduino-cli lib install --git-url \
-              https://github.com/Seeed-Studio/Seeed_Arduino_LSM6DS3.git
-          fi
+            if arduino-cli lib install --git-url "$2"; then
+              echo "$1 : installÃ©e depuis GitHub"
+              echo "::endgroup::"; return 0
+            fi
+            echo "::error::Impossible d'installer $1"
+            echo "::endgroup::"; return 1
+          }
+
+          install_lib "SparkFun u-blox GNSS Arduino Library" \
+            "https://github.com/sparkfun/SparkFun_u-blox_GNSS_Arduino_Library.git"
+          install_lib "Seeed Arduino LSM6DS3" \
+            "https://github.com/Seeed-Studio/Seeed_Arduino_LSM6DS3.git"
+
           echo "--- bibliothÃ¨ques prÃ©sentes ---"
           arduino-cli lib list
 
       - name: Localisation du croquis
         id: sketch
         run: |
-          # Un croquis Arduino doit vivre dans un dossier portant son nom.
+          set -euo pipefail
           INO=$(find . -name '*.ino' -not -path './.git/*' | head -n 1)
           if [ -z "$INO" ]; then
             echo "::error::Aucun fichier .ino trouvÃ© dans le dÃ©pÃ´t."
+            echo "Contenu du dÃ©pÃ´t :"; find . -maxdepth 2 -not -path './.git*'
             exit 1
-          fi
-          COUNT=$(find . -name '*.ino' -not -path './.git/*' | wc -l)
-          if [ "$COUNT" -gt 1 ]; then
-            echo "::warning::$COUNT fichiers .ino trouvÃ©s, compilation de $INO"
           fi
           NAME=$(basename "$INO" .ino)
           DIR=$(dirname "$INO")
-          # Recopie dans une arborescence conforme si ce n'est pas dÃ©jÃ  le cas.
+          # Un croquis Arduino doit vivre dans un dossier portant son nom.
           if [ "$(basename "$DIR")" != "$NAME" ]; then
+            echo "RÃ©organisation : le dossier ne porte pas le nom du croquis."
             mkdir -p "build-src/$NAME"
             cp "$INO" "build-src/$NAME/"
             find "$DIR" -maxdepth 1 \( -name '*.h' -o -name '*.cpp' \) \
@@ -93,20 +116,22 @@ jobs:
           fi
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "dir=$DIR"   >> "$GITHUB_OUTPUT"
-          echo "Croquis : $DIR ($NAME)"
+          echo "Croquis retenu : $DIR ($NAME.ino)"
 
       - name: Compilation
         run: |
+          set -euo pipefail
           arduino-cli compile \
             --fqbn "$FQBN" \
             --export-binaries \
             --warnings default \
             "${{ steps.sketch.outputs.dir }}"
 
-      # Le core produit le .hex et, via sa recette intÃ©grÃ©e, le .zip DFU
-      # signÃ© avec le bon identifiant de SoftDevice. On n'a qu'Ã  ajouter l'UF2.
+      # Le core produit lui-mÃªme le .zip DFU, avec le bon identifiant de
+      # SoftDevice. On n'ajoute que la conversion en UF2.
       - name: Conversion en UF2
         run: |
+          set -euo pipefail
           BIN="${{ steps.sketch.outputs.dir }}/build"
           HEX=$(find "$BIN" -name '*.hex' ! -name '*with_bootloader*' | head -n 1)
           if [ -z "$HEX" ]; then
@@ -117,13 +142,17 @@ jobs:
           echo "Fichier source : $HEX"
           curl -sSLO https://raw.githubusercontent.com/microsoft/uf2/master/utils/uf2conv.py
           curl -sSLO https://raw.githubusercontent.com/microsoft/uf2/master/utils/uf2families.json
-          mkdir -p dist
+          mkdir -p dist uf2
           python3 uf2conv.py "$HEX" -c -f "$UF2_FAMILY" \
-            -o "dist/${{ steps.sketch.outputs.name }}.uf2"
-          # Le paquet DFU sert Ã  la mise Ã  jour par Bluetooth (nRF Connect).
+            -o "uf2/${{ steps.sketch.outputs.name }}.uf2"
+          cp "uf2/${{ steps.sketch.outputs.name }}.uf2" dist/
           ZIP=$(find "$BIN" -name '*.zip' | head -n 1)
-          [ -n "$ZIP" ] && cp "$ZIP" "dist/${{ steps.sketch.outputs.name }}-dfu.zip"
-          cp "$HEX" "dist/"
+          if [ -n "$ZIP" ]; then
+            cp "$ZIP" "dist/${{ steps.sketch.outputs.name }}-dfu.zip"
+          else
+            echo "::warning::Pas de paquet DFU gÃ©nÃ©rÃ© par le core."
+          fi
+          cp "$HEX" dist/
           ls -lh dist/
 
       - name: RÃ©capitulatif
@@ -144,20 +173,35 @@ jobs:
               echo "| \`$n\` | $s | $u |"
             done
             echo ""
-            echo "TÃ©lÃ©chargez l'archive **firmware** en bas de cette page."
+            echo "Sur tÃ©lÃ©phone, tÃ©lÃ©chargez l'artefact **firmware-uf2** :"
+            echo "il se tÃ©lÃ©charge tel quel, sans dÃ©compression."
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Publication des fichiers
-        uses: actions/upload-artifact@v4
+      # Artefact non compressÃ© : le .uf2 se tÃ©lÃ©charge directement, sans
+      # passer par une archive Ã  extraire â€” indispensable sur tÃ©lÃ©phone.
+      - name: Publication du UF2 (tÃ©lÃ©chargement direct)
+        uses: actions/upload-artifact@v7
         with:
-          name: firmware
+          name: firmware-uf2
+          path: uf2/
+          archive: false
+          retention-days: 90
+
+      - name: Publication de tous les fichiers
+        uses: actions/upload-artifact@v7
+        with:
+          name: firmware-complet
           path: dist/
           retention-days: 90
 
-      # Sur un tag (ex. v1.0), les fichiers sont aussi attachÃ©s Ã  une release :
-      # l'URL est alors stable et directement tÃ©lÃ©chargeable sur tÃ©lÃ©phone.
+      # Sur un tag (ex. v1.0), les fichiers sont attachÃ©s Ã  une release :
+      # l'URL devient stable et directement tÃ©lÃ©chargeable.
       - name: CrÃ©ation de la release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          gh release create "$TAG" dist/* --title "$TAG" \
+            --notes "Firmware compilÃ© automatiquement depuis $GITHUB_SHA." \
+            || gh release upload "$TAG" dist/* --clobber
