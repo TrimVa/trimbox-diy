@@ -22,7 +22,7 @@
 //     chaÃ®ne du Model Characteristic doivent correspondre exactement Ã  ce
 //     que la doc du protocole RaceBox impose, sinon l'app ne proposera pas
 //     les fonctions de mÃ©moire.
-#define DEVICE_NAME "RaceBox Mini S " TrimVa // Auto-synced Name
+#define DEVICE_NAME "RaceBox Mini S " SERIAL_NUM // Auto-synced Name
 #define MODEL_STRING "RaceBox Mini S"            // <-- lu par l'app RaceBox
 #define HARDWARE_VER "1.0"
 #define MANUFACTURER "RaceBox"
