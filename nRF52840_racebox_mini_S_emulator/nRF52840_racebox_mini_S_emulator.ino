@@ -5,7 +5,7 @@
 #include <bluefruit.h>
 #include <nrf_soc.h>
 
-// --- AJOUT : stockage sur la flash QSPI 2 Mo embarquÃ©e (P25Q16H) ---
+// --- AJOUT : stockage sur la flash QSPI 2 Mo embarquée (P25Q16H) ---
 #include <Adafruit_SPIFlash.h>
 #include <SPI.h>
 
@@ -17,16 +17,23 @@
 #define SERIAL_NUM "2230456789" // The unique 10-digit serial
 
 // (DO NOT CHANGE THESE: Required for RaceBox Application compatibility)
-// --- MODIFIÃ‰ : on se prÃ©sente comme un RaceBox Mini S (= modÃ¨le avec
-//     enregistrement autonome en mÃ©moire interne). Le prÃ©fixe du nom ET la
-//     chaÃ®ne du Model Characteristic doivent correspondre exactement Ã  ce
+// --- MODIFIÉ : on se présente comme un RaceBox Mini S (= modèle avec
+//     enregistrement autonome en mémoire interne). Le préfixe du nom ET la
+//     chaîne du Model Characteristic doivent correspondre exactement à ce
 //     que la doc du protocole RaceBox impose, sinon l'app ne proposera pas
-//     les fonctions de mÃ©moire.
+//     les fonctions de mémoire.
 #define DEVICE_NAME "RaceBox Mini S " SERIAL_NUM // Auto-synced Name
 #define MODEL_STRING "RaceBox Mini S"            // <-- lu par l'app RaceBox
 #define HARDWARE_VER "1.0"
 #define MANUFACTURER "RaceBox"
 #define FIRMWARE_VER "3.3"
+
+// --- AJOUT : empreinte de compilation. Le bootloader UF2 redémarre la carte
+//     dès le dernier bloc écrit, ce qui provoque une erreur de déconnexion
+//     côté ordinateur ou téléphone : celle-ci est normale et n'indique pas si
+//     le firmware a réellement été pris. Cette empreinte, affichée au
+//     démarrage ET dans le rapport périodique, lève le doute.
+#define BUILD_STAMP __DATE__ " " __TIME__
 
 // --- GPS Performance ---
 #define MAX_NAVIGATION_RATE 25 // 25Hz: Max rate for RaceBox Mini protocol
@@ -120,9 +127,9 @@ const uint8_t RACEBOX_GNSS_UUID[] = {0x9E, 0xCA, 0xDC, 0x24, 0x0E, 0xE5,
                                      0xA9, 0xE0, 0x93, 0xF3, 0xA3, 0xB5,
                                      0x04, 0x00, 0x40, 0x6E};
 
-// --- AJOUT : mise Ã  jour du firmware par Bluetooth (OTA DFU) ---
-// Mettre Ã  0 pour retirer complÃ¨tement le service, par exemple si le service
-// n'existe pas dans votre version du core, ou pour empÃªcher toute
+// --- AJOUT : mise à jour du firmware par Bluetooth (OTA DFU) ---
+// Mettre à 0 pour retirer complètement le service, par exemple si le service
+// n'existe pas dans votre version du core, ou pour empêcher toute
 // reprogrammation sans fil de l'appareil.
 #define ENABLE_OTA_DFU 1
 #if ENABLE_OTA_DFU
@@ -167,10 +174,10 @@ void calculateChecksum(uint8_t *payload, uint16_t len, uint8_t cls, uint8_t id,
 }
 
 // ############################################################################
-// ###  AJOUT : Ã‰MULATION RACEBOX MINI S â€” ENREGISTREMENT AUTONOME          ###
+// ###  AJOUT : ÉMULATION RACEBOX MINI S — ENREGISTREMENT AUTONOME          ###
 // ###                                                                      ###
-// ###  ImplÃ©mente la section "Standalone Recording" de la documentation    ###
-// ###  officielle du protocole BLE RaceBox (rÃ©vision 8) :                  ###
+// ###  Implémente la section "Standalone Recording" de la documentation    ###
+// ###  officielle du protocole BLE RaceBox (révision 8) :                  ###
 // ###    0xFF 0x21  History Data Message                                   ###
 // ###    0xFF 0x22  Standalone Recording Status                            ###
 // ###    0xFF 0x23  Recorded Data Download / Cancel                        ###
@@ -182,16 +189,16 @@ void calculateChecksum(uint8_t *payload, uint16_t len, uint8_t cls, uint8_t id,
 // ###    0xFF 0x02 / 0x03  ACK / NACK                                      ###
 // ############################################################################
 
-// --- Flash QSPI embarquÃ©e (Seeed XIAO nRF52840 : P25Q16H, 2 Mo) ---
+// --- Flash QSPI embarquée (Seeed XIAO nRF52840 : P25Q16H, 2 Mo) ---
 // IMPORTANT : utiliser la version d'Adafruit_SPIFlash FOURNIE AVEC LE CORE
-// Seeeduino. Si une copie est installÃ©e dans Documents\Arduino\libraries,
-// elle prend la prioritÃ© et entraÃ®ne un conflit de type 'File' dans
+// Seeeduino. Si une copie est installée dans Documents\Arduino\libraries,
+// elle prend la priorité et entraîne un conflit de type 'File' dans
 // bonding.cpp (Bluefruit). Dans ce cas, renommez le dossier en doublon.
 //
-// Le core connaÃ®t normalement dÃ©jÃ  la P25Q16H. La description explicite
-// ci-dessous ne sert que de secours si la dÃ©tection automatique Ã©choue.
+// Le core connaît normalement déjà la P25Q16H. La description explicite
+// ci-dessous ne sert que de secours si la détection automatique échoue.
 // Si elle refuse de compiler (par ex. champ 'is_fram' inconnu sur une
-// version ancienne), passez USE_EXPLICIT_FLASH_DEVICE Ã  0.
+// version ancienne), passez USE_EXPLICIT_FLASH_DEVICE à 0.
 #define USE_EXPLICIT_FLASH_DEVICE 1
 
 #if USE_EXPLICIT_FLASH_DEVICE
@@ -220,44 +227,44 @@ Adafruit_FlashTransport_SPI flashTransport(EXTERNAL_FLASH_USE_CS,
                                            EXTERNAL_FLASH_USE_SPI);
 #else
 // Repli : bit-bang SPI sur les broches QSPI.
-// NB : on utilise SPIM2 et surtout PAS SPIM0, qui partage son bloc matÃ©riel
+// NB : on utilise SPIM2 et surtout PAS SPIM0, qui partage son bloc matériel
 // avec TWIM0 (le bus Wire de l'IMU) sur le nRF52840.
 SPIClass SPI_QSPI(NRF_SPIM2, PIN_QSPI_IO1, PIN_QSPI_SCK, PIN_QSPI_IO0);
 Adafruit_FlashTransport_SPI flashTransport(PIN_QSPI_CS, SPI_QSPI);
 #endif
 Adafruit_SPIFlash flash(&flashTransport);
 
-// --- DÃ©coupage de la mÃ©moire ---
+// --- Découpage de la mémoire ---
 #define REC_MAGIC 0x534D4252UL // "RBMS"
 #define REC_CFG_VERSION 2
-// --- SÃ‰CURITÃ‰ : la configuration est Ã©crite en DOUBLE EXEMPLAIRE, dans deux
+// --- SÉCURITÉ : la configuration est écrite en DOUBLE EXEMPLAIRE, dans deux
 //     secteurs distincts et en alternance. Sauvegarder implique d'effacer puis
-//     de rÃ©Ã©crire un secteur ; si le courant est coupÃ© pendant cette fenÃªtre,
-//     l'exemplaire en cours d'Ã©criture est perdu â€” mais l'autre, intact, prend
-//     le relais au dÃ©marrage suivant. Un numÃ©ro de sÃ©quence dÃ©signe le plus
-//     rÃ©cent, une somme de contrÃ´le Ã©carte celui qui serait tronquÃ©.
+//     de réécrire un secteur ; si le courant est coupé pendant cette fenêtre,
+//     l'exemplaire en cours d'écriture est perdu — mais l'autre, intact, prend
+//     le relais au démarrage suivant. Un numéro de séquence désigne le plus
+//     récent, une somme de contrôle écarte celui qui serait tronqué.
 #define META_A 0               // secteur 0 : exemplaire A
 #define META_B 4096            // secteur 1 : exemplaire B
-#define DATA_START 8192        // les enregistrements commencent aprÃ¨s les deux
+#define DATA_START 8192        // les enregistrements commencent après les deux
 #define SLOT_SIZE 81           // 1 octet de type + 80 octets de payload
 
 // Reprise automatique d'une session interrompue par une coupure de courant.
-// LaissÃ© Ã  0 volontairement : reprendre seul rallume le GPS et peut rendre
-// l'appareil difficile Ã  reprendre en main. Les donnÃ©es dÃ©jÃ  enregistrÃ©es ne
-// sont jamais perdues, seule la poursuite automatique est dÃ©sactivÃ©e.
+// Laissé à 0 volontairement : reprendre seul rallume le GPS et peut rendre
+// l'appareil difficile à reprendre en main. Les données déjà enregistrées ne
+// sont jamais perdues, seule la poursuite automatique est désactivée.
 #define AUTO_RESUME_RECORDING 0
 
 static bool flashReady = false;
 static uint32_t flashTotalBytes = 0;
-static uint32_t totalSlots = 0; // capacitÃ© en enregistrements
-static uint32_t usedSlots = 0;  // pointeur d'Ã©criture
+static uint32_t totalSlots = 0; // capacité en enregistrements
+static uint32_t usedSlots = 0;  // pointeur d'écriture
 
-// --- Types d'enregistrement stockÃ©s (= ID du message RaceBox) ---
+// --- Types d'enregistrement stockés (= ID du message RaceBox) ---
 #define REC_TYPE_DATA 0x21
 #define REC_TYPE_STATE 0x26
 #define REC_TYPE_EMPTY 0xFF
 
-// --- Ã‰tats d'enregistrement (doc RaceBox) ---
+// --- États d'enregistrement (doc RaceBox) ---
 #define REC_STATE_OFF 0
 #define REC_STATE_RUNNING 1
 #define REC_STATE_PAUSED 2
@@ -280,12 +287,12 @@ struct __attribute__((packed)) RecConfig {
   uint16_t statInterval;   // en secondes
   uint16_t noFixInterval;  // en secondes
   uint16_t autoOffInterval;// en secondes
-  uint8_t gnssDynModel;    // 0xFF 0x27 : modÃ¨le dynamique u-blox
+  uint8_t gnssDynModel;    // 0xFF 0x27 : modèle dynamique u-blox
   uint8_t gnss3dSpeed;     // 0xFF 0x27 : vitesse 3D au lieu de vitesse sol
-  uint8_t gnssMinAcc;      // 0xFF 0x27 : prÃ©cision horizontale mini (m)
+  uint8_t gnssMinAcc;      // 0xFF 0x27 : précision horizontale mini (m)
   uint8_t reserved;
-  uint32_t seq;            // numÃ©ro de sÃ©quence : le plus grand fait foi
-  uint32_t crc;            // somme de contrÃ´le des champs prÃ©cÃ©dents
+  uint32_t seq;            // numéro de séquence : le plus grand fait foi
+  uint32_t crc;            // somme de contrôle des champs précédents
 };
 
 static RecConfig recCfg;
@@ -298,23 +305,23 @@ static unsigned long noFixSinceMs = 0;
 static unsigned long lastStoredDataMs = 0;
 static bool anyDataSinceEnable = false;
 
-// --- File d'Ã©mission BLE (flux d'octets, pour saturer la bande passante) ---
+// --- File d'émission BLE (flux d'octets, pour saturer la bande passante) ---
 #define TXQ_SIZE 2048
 static uint8_t txq[TXQ_SIZE];
 static uint16_t txqHead = 0, txqTail = 0;
 static uint16_t negotiatedMtu = 23;
 
-// --- RÃ©ception BLE (anneau rempli dans le callback, traitÃ© dans loop) ---
+// --- Réception BLE (anneau rempli dans le callback, traité dans loop) ---
 #define RXRING_SIZE 512
 static uint8_t rxRing[RXRING_SIZE];
 static volatile uint16_t rxHead = 0, rxTail = 0;
 static uint8_t asmBuf[560];
 static uint16_t asmLen = 0;
-// Diagnostic : nombre total d'octets Ã©crits par le client sur la RX.
+// Diagnostic : nombre total d'octets écrits par le client sur la RX.
 static volatile uint32_t rxByteCount = 0;
-#define RX_DEBUG 1 // 1 = affiche les octets bruts reÃ§us (mettre 0 en usage rÃ©el)
+#define RX_DEBUG 1 // 1 = affiche les octets bruts reçus (mettre 0 en usage réel)
 
-// --- OpÃ©rations longues (tÃ©lÃ©chargement / effacement) ---
+// --- Opérations longues (téléchargement / effacement) ---
 static bool downloadActive = false;
 static uint32_t downloadCursor = 0;
 static uint32_t downloadEnd = 0;
@@ -324,7 +331,7 @@ static uint32_t eraseBlock = 0;
 static uint32_t eraseBlockCount = 0;
 static int lastErasePct = -1;
 
-// DÃ©clarations anticipÃ©es (fonctions dÃ©finies plus bas dans le fichier)
+// Déclarations anticipées (fonctions définies plus bas dans le fichier)
 void enterDeepSleep();
 bool configureGPS();
 
@@ -354,7 +361,7 @@ static void txqService() {
 
   uint8_t chunk[244];
   // Plusieurs notifications par tour de boucle tant que la pile BLE accepte.
-  // La file transporte dÃ©sormais aussi les 25 Hz de donnÃ©es live, il faut donc
+  // La file transporte désormais aussi les 25 Hz de données live, il faut donc
   // pouvoir la vider plus vite qu'elle ne se remplit.
   for (uint8_t burst = 0; burst < 12; burst++) {
     uint16_t n = txqUsed();
@@ -365,16 +372,16 @@ static void txqService() {
     for (uint16_t i = 0; i < n; i++)
       chunk[i] = txq[(txqTail + i) & (TXQ_SIZE - 1)];
     if (!rbTx.notify(chunk, n))
-      return; // tampon SoftDevice plein : on rÃ©essaiera au tour suivant
+      return; // tampon SoftDevice plein : on réessaiera au tour suivant
     txqTail = (txqTail + n) & (TXQ_SIZE - 1);
   }
 }
 
-// Encapsule un message dans une trame UBX et l'empile pour Ã©mission.
+// Encapsule un message dans une trame UBX et l'empile pour émission.
 static bool sendUbx(uint8_t cls, uint8_t id, const uint8_t *payload,
                     uint16_t len) {
-  // Statique : appelÃ© uniquement depuis la boucle principale, et Ã©vite de
-  // consommer inutilement la pile de la tÃ¢che Arduino.
+  // Statique : appelé uniquement depuis la boucle principale, et évite de
+  // consommer inutilement la pile de la tâche Arduino.
   static uint8_t pkt[8 + 256];
   if (len > 256)
     return false;
@@ -413,12 +420,12 @@ static uint8_t slotType(uint32_t i) {
   return t;
 }
 
-static uint8_t lastMetaSlot = 1; // dernier exemplaire Ã©crit (0 = A, 1 = B)
+static uint8_t lastMetaSlot = 1; // dernier exemplaire écrit (0 = A, 1 = B)
 
 // NB : ces deux fonctions prennent un 'const void *' et non un
-// 'const RecConfig *'. L'IDE Arduino gÃ©nÃ¨re automatiquement les prototypes et
-// les insÃ¨re AVANT la dÃ©claration de la structure : une signature typÃ©e
-// provoquerait alors Â« 'RecConfig' does not name a type Â».
+// 'const RecConfig *'. L'IDE Arduino génère automatiquement les prototypes et
+// les insère AVANT la déclaration de la structure : une signature typée
+// provoquerait alors « 'RecConfig' does not name a type ».
 static uint32_t cfgCrc(const void *cfg) {
   const RecConfig *c = (const RecConfig *)cfg;
   const uint8_t *p = (const uint8_t *)c;
@@ -434,8 +441,8 @@ static bool cfgValid(const void *cfg) {
          c->crc == cfgCrc(c);
 }
 
-// Ã‰crit la configuration dans l'exemplaire NON utilisÃ© la derniÃ¨re fois.
-// L'autre reste donc toujours valide pendant toute l'opÃ©ration.
+// Écrit la configuration dans l'exemplaire NON utilisé la dernière fois.
+// L'autre reste donc toujours valide pendant toute l'opération.
 static void saveConfig() {
   recCfg.magic = REC_MAGIC;
   recCfg.version = REC_CFG_VERSION;
@@ -449,17 +456,17 @@ static void saveConfig() {
   flash.writeBuffer(addr, (uint8_t *)&recCfg, sizeof(RecConfig));
   flash.waitUntilReady();
 
-  // Relecture de contrÃ´le : si l'Ã©criture s'est mal passÃ©e, on n'adopte pas
-  // ce nouvel exemplaire comme rÃ©fÃ©rence.
+  // Relecture de contrôle : si l'écriture s'est mal passée, on n'adopte pas
+  // ce nouvel exemplaire comme référence.
   RecConfig back;
   flash.readBuffer(addr, (uint8_t *)&back, sizeof(back));
   if (cfgValid(&back))
     lastMetaSlot = target;
   else
-    Serial.println("âš ï¸ Ã‰criture de configuration non confirmÃ©e.");
+    Serial.println("⚠️ Écriture de configuration non confirmée.");
 }
 
-// Relit les deux exemplaires et retient le plus rÃ©cent qui soit intact.
+// Relit les deux exemplaires et retient le plus récent qui soit intact.
 static bool loadConfig() {
   RecConfig a, b;
   flash.readBuffer(META_A, (uint8_t *)&a, sizeof(a));
@@ -467,18 +474,18 @@ static bool loadConfig() {
   bool va = cfgValid(&a), vb = cfgValid(&b);
 
   if (va && vb) {
-    // Comparaison tolÃ©rante au rebouclage du compteur.
+    // Comparaison tolérante au rebouclage du compteur.
     bool bIsNewer = (int32_t)(b.seq - a.seq) > 0;
     recCfg = bIsNewer ? b : a;
     lastMetaSlot = bIsNewer ? 1 : 0;
   } else if (va) {
     recCfg = a;
     lastMetaSlot = 0;
-    Serial.println("âš ï¸ Exemplaire B illisible : reprise sur A.");
+    Serial.println("⚠️ Exemplaire B illisible : reprise sur A.");
   } else if (vb) {
     recCfg = b;
     lastMetaSlot = 1;
-    Serial.println("âš ï¸ Exemplaire A illisible : reprise sur B.");
+    Serial.println("⚠️ Exemplaire A illisible : reprise sur B.");
   } else {
     return false;
   }
@@ -493,21 +500,21 @@ static void defaultConfig() {
   recCfg.seq = keepSeq;
   recCfg.enabled = 0;
   recCfg.dataRate = 0;          // 25 Hz
-  recCfg.flags = 0x1F;          // tous les filtres, rÃ©glage recommandÃ© RaceBox
+  recCfg.flags = 0x1F;          // tous les filtres, réglage recommandé RaceBox
   recCfg.statSpeed = 1389;      // ~5 km/h
   recCfg.statInterval = 30;
   recCfg.noFixInterval = 30;
   recCfg.autoOffInterval = 300; // 5 minutes
-  // 7 = DYN_MODEL_AIRBORNE2g : conserve le rÃ©glage "piste" d'origine.
-  // L'app RaceBox propose en gÃ©nÃ©ral 4 (automobile) ; elle peut l'imposer.
+  // 7 = DYN_MODEL_AIRBORNE2g : conserve le réglage "piste" d'origine.
+  // L'app RaceBox propose en général 4 (automobile) ; elle peut l'imposer.
   recCfg.gnssDynModel = 7;
   recCfg.gnss3dSpeed = 0;
   recCfg.gnssMinAcc = 3;
 }
 
-// Effacement complet, bloquant (utilisÃ© seulement au tout premier dÃ©marrage).
+// Effacement complet, bloquant (utilisé seulement au tout premier démarrage).
 static void fullEraseBlocking() {
-  Serial.println("ðŸ§¹ Formatage initial de la mÃ©moire flash...");
+  Serial.println("🧹 Formatage initial de la mémoire flash...");
   uint32_t blocks = flashTotalBytes / 65536;
   for (uint32_t b = 0; b < blocks; b++) {
     flash.eraseBlock(b);
@@ -517,7 +524,7 @@ static void fullEraseBlocking() {
   }
   usedSlots = 0;
   memoryFull = false;
-  Serial.println("âœ… MÃ©moire prÃªte.");
+  Serial.println("✅ Mémoire prête.");
 }
 
 // Recherche dichotomique du premier emplacement libre.
@@ -539,7 +546,7 @@ static bool storeRecord(uint8_t type, const uint8_t *payload80) {
     return false;
   if (usedSlots >= totalSlots) {
     if (!memoryFull)
-      Serial.println("âš ï¸ MÃ©moire pleine : enregistrement interrompu.");
+      Serial.println("⚠️ Mémoire pleine : enregistrement interrompu.");
     memoryFull = true;
     return false;
   }
@@ -551,10 +558,10 @@ static bool storeRecord(uint8_t type, const uint8_t *payload80) {
   return true;
 }
 
-// Construit le payload d'un message 0xFF 0x26 (changement d'Ã©tat).
+// Construit le payload d'un message 0xFF 0x26 (changement d'état).
 // Le tampon fourni doit faire 80 octets : les 12 premiers portent
-// l'information, le reste est mis Ã  zÃ©ro pour occuper un emplacement mÃ©moire
-// de taille identique Ã  celle d'un enregistrement de donnÃ©es.
+// l'information, le reste est mis à zéro pour occuper un emplacement mémoire
+// de taille identique à celle d'un enregistrement de données.
 static void buildStatePayload(uint8_t *p, uint8_t newState) {
   memset(p, 0, 80);
   p[0] = newState;
@@ -567,7 +574,7 @@ static void buildStatePayload(uint8_t *p, uint8_t newState) {
   writeLittleEndian(p, 10, recCfg.autoOffInterval);
 }
 
-// Enregistre le changement d'Ã©tat en mÃ©moire ET le notifie au client connectÃ©.
+// Enregistre le changement d'état en mémoire ET le notifie au client connecté.
 static void announceStateChange(uint8_t newState, bool alsoStore) {
   uint8_t p[80];
   buildStatePayload(p, newState);
@@ -577,7 +584,7 @@ static void announceStateChange(uint8_t newState, bool alsoStore) {
     sendUbx(0xFF, 0x26, p, 12);
 }
 
-// Traduit le champ "Data Rate" du protocole en frÃ©quence de navigation GNSS.
+// Traduit le champ "Data Rate" du protocole en fréquence de navigation GNSS.
 static uint8_t rateToHz(uint8_t r) {
   switch (r) {
   case 1:
@@ -598,12 +605,12 @@ static void applyNavRate() {
     return;
   uint8_t hz = recCfg.enabled ? rateToHz(recCfg.dataRate) : 25;
   myGNSS.setNavigationFrequency(hz);
-  Serial.printf("ðŸ›°ï¸ FrÃ©quence GNSS : %u Hz\n", hz);
+  Serial.printf("🛰️ Fréquence GNSS : %u Hz\n", hz);
 }
 
 static void startRecording() {
   if (memoryFull) {
-    Serial.println("âš ï¸ Impossible de dÃ©marrer : mÃ©moire pleine.");
+    Serial.println("⚠️ Impossible de démarrer : mémoire pleine.");
     return;
   }
   recCfg.enabled = 1;
@@ -615,7 +622,7 @@ static void startRecording() {
   saveConfig();
   applyNavRate();
   announceStateChange(REC_STATE_RUNNING, true);
-  Serial.println("âºï¸ Enregistrement autonome DÃ‰MARRÃ‰.");
+  Serial.println("⏺️ Enregistrement autonome DÉMARRÉ.");
 }
 
 static void stopRecording() {
@@ -625,10 +632,10 @@ static void stopRecording() {
   recState = REC_STATE_OFF;
   saveConfig();
   applyNavRate();
-  Serial.println("â¹ï¸ Enregistrement autonome ARRÃŠTÃ‰.");
+  Serial.println("⏹️ Enregistrement autonome ARRÊTÉ.");
 }
 
-// AppelÃ© Ã  chaque nouveau point GNSS : applique les filtres puis stocke.
+// Appelé à chaque nouveau point GNSS : applique les filtres puis stocke.
 static void recordTick(const uint8_t *payload80) {
   if (recState == REC_STATE_OFF || !flashReady)
     return;
@@ -639,7 +646,7 @@ static void recordTick(const uint8_t *payload80) {
       (myGNSS.packetUBXNAVPVT != NULL) ? myGNSS.packetUBXNAVPVT->data.gSpeed : 0;
   unsigned long now = millis();
 
-  // "Wait for GNSS fix" : rien n'est stockÃ© tant qu'il n'y a pas de fix 3D.
+  // "Wait for GNSS fix" : rien n'est stocké tant qu'il n'y a pas de fix 3D.
   if ((recCfg.flags & RECFLAG_WAIT_FIX) && !haveFix && !anyDataSinceEnable)
     return;
 
@@ -673,17 +680,17 @@ static void recordTick(const uint8_t *payload80) {
     if (recState == REC_STATE_RUNNING) {
       recState = REC_STATE_PAUSED;
       announceStateChange(REC_STATE_PAUSED, true);
-      Serial.println("â¸ï¸ Enregistrement en pause (filtre actif).");
+      Serial.println("⏸️ Enregistrement en pause (filtre actif).");
     }
     return;
   }
 
-  // Reprise : la doc prÃ©cise que le passage pause -> actif n'est PAS stockÃ©,
-  // mais qu'il est bien notifiÃ© au client connectÃ©.
+  // Reprise : la doc précise que le passage pause -> actif n'est PAS stocké,
+  // mais qu'il est bien notifié au client connecté.
   if (recState == REC_STATE_PAUSED) {
     recState = REC_STATE_RUNNING;
     announceStateChange(REC_STATE_RUNNING, false);
-    Serial.println("â–¶ï¸ Reprise de l'enregistrement.");
+    Serial.println("▶️ Reprise de l'enregistrement.");
   }
 
   if (storeRecord(REC_TYPE_DATA, payload80)) {
@@ -692,24 +699,24 @@ static void recordTick(const uint8_t *payload80) {
   }
 }
 
-// Extinction automatique aprÃ¨s inactivitÃ© prolongÃ©e.
+// Extinction automatique après inactivité prolongée.
 static void serviceAutoShutdown() {
   if (!(recCfg.flags & RECFLAG_AUTOSHUTDOWN) || recState == REC_STATE_OFF)
     return;
   if (deviceConnected || downloadActive || eraseActive)
     return;
-  // --- CORRIGÃ‰ : ne JAMAIS s'Ã©teindre tant que l'USB est branchÃ©. Sans cette
+  // --- CORRIGÉ : ne JAMAIS s'éteindre tant que l'USB est branché. Sans cette
   //     garde, un module en enregistrement mais sans fix partait en veille
-  //     profonde au bout du dÃ©lai configurÃ© : le port USB disparaissait et la
-  //     carte devenait impossible Ã  reflasher sans double-clic sur RESET.
+  //     profonde au bout du délai configuré : le port USB disparaissait et la
+  //     carte devenait impossible à reflasher sans double-clic sur RESET.
   if (isPluggedIn() || isCharging())
     return;
-  // FenÃªtre de grÃ¢ce aprÃ¨s dÃ©marrage : laisse toujours le temps de reprendre
+  // Fenêtre de grâce après démarrage : laisse toujours le temps de reprendre
   // la main sur l'appareil avant toute extinction automatique.
   if (millis() < 120000UL)
     return;
-  // --- SÃ‰CURITÃ‰ : ne jamais s'Ã©teindre si la session n'a jamais rien
-  //     enregistrÃ©. Sans cette garde, un module qui n'accroche aucun satellite
+  // --- SÉCURITÉ : ne jamais s'éteindre si la session n'a jamais rien
+  //     enregistré. Sans cette garde, un module qui n'accroche aucun satellite
   //     se met hors tension tout seul et devient injoignable.
   if (!anyDataSinceEnable)
     return;
@@ -720,27 +727,27 @@ static void serviceAutoShutdown() {
     return;
   if ((millis() - lastStoredDataMs) >
       (unsigned long)recCfg.autoOffInterval * 1000UL) {
-    Serial.println("âŒ› Auto-Shutdown : aucune donnÃ©e depuis un moment.");
+    Serial.println("⌛ Auto-Shutdown : aucune donnée depuis un moment.");
     enterDeepSleep();
   }
 }
 
-// --------------------------------------------------- tÃ©lÃ©chargement/erase ---
+// --------------------------------------------------- téléchargement/erase ---
 static void startDownload() {
   downloadActive = true;
   downloadSkipped = 0;
   downloadCursor = 0;
-  downloadEnd = usedSlots; // instantanÃ© : on n'envoie pas ce qui s'ajoute aprÃ¨s
+  downloadEnd = usedSlots; // instantané : on n'envoie pas ce qui s'ajoute après
   uint8_t p[4];
   writeLittleEndian(p, 0, (uint32_t)downloadEnd);
   sendUbx(0xFF, 0x23, p, 4);
-  Serial.printf("â¬‡ï¸ TÃ©lÃ©chargement de %lu enregistrements...\n",
+  Serial.printf("⬇️ Téléchargement de %lu enregistrements...\n",
                 (unsigned long)downloadEnd);
 }
 
-// Un enregistrement dont l'Ã©criture a Ã©tÃ© interrompue par une coupure de
-// courant contient des octets restÃ©s Ã  0xFF. Transmis tel quel, il produit des
-// positions et des vitesses absurdes cÃ´tÃ© application. On le contrÃ´le donc
+// Un enregistrement dont l'écriture a été interrompue par une coupure de
+// courant contient des octets restés à 0xFF. Transmis tel quel, il produit des
+// positions et des vitesses absurdes côté application. On le contrôle donc
 // avant de l'envoyer.
 static bool recordLooksValid(const uint8_t *p) {
   int32_t lat, lon, gSpeed;
@@ -765,7 +772,7 @@ static void serviceDownload() {
     if (slot[0] == REC_TYPE_DATA) {
       if (recordLooksValid(slot + 1)) {
         if (!sendUbx(0xFF, 0x21, slot + 1, 80))
-          break;                       // file pleine : on rÃ©essaiera, sans
+          break;                       // file pleine : on réessaiera, sans
                                        // avancer, pour ne rien perdre
       } else {
         downloadSkipped++;
@@ -779,21 +786,21 @@ static void serviceDownload() {
   if (downloadCursor >= downloadEnd && txqUsed() == 0) {
     downloadActive = false;
     sendAck(0xFF, 0x23);
-    Serial.printf("âœ… TÃ©lÃ©chargement terminÃ© (%lu enregistrement(s) corrompu(s) "
-                  "Ã©cartÃ©(s)).\n", (unsigned long)downloadSkipped);
+    Serial.printf("✅ Téléchargement terminé (%lu enregistrement(s) corrompu(s) "
+                  "écarté(s)).\n", (unsigned long)downloadSkipped);
   }
 }
 
 static void startErase() {
   eraseActive = true;
   eraseBlock = 0;
-  // On n'efface que la zone rÃ©ellement Ã©crite (bien plus rapide).
+  // On n'efface que la zone réellement écrite (bien plus rapide).
   uint32_t usedBytes = DATA_START + usedSlots * (uint32_t)SLOT_SIZE;
   eraseBlockCount = (usedBytes + 65535) / 65536;
   if (eraseBlockCount == 0)
     eraseBlockCount = 1;
   lastErasePct = -1;
-  Serial.println("ðŸ§¹ Effacement de la mÃ©moire...");
+  Serial.println("🧹 Effacement de la mémoire...");
 }
 
 static void serviceErase() {
@@ -816,22 +823,22 @@ static void serviceErase() {
     eraseActive = false;
     usedSlots = 0;
     memoryFull = false;
-    saveConfig(); // le secteur 0 vient d'Ãªtre effacÃ©, on le rÃ©Ã©crit
+    saveConfig(); // le secteur 0 vient d'être effacé, on le réécrit
     sendAck(0xFF, 0x24);
-    Serial.println("âœ… MÃ©moire effacÃ©e.");
+    Serial.println("✅ Mémoire effacée.");
   }
 }
 
 // ------------------------------------------------------ traitement des cmd ---
 static void handleCommand(uint8_t cls, uint8_t id, uint8_t *pl, uint16_t len) {
-  // Trace utile au diagnostic : montre ce que l'application demande rÃ©ellement.
-  Serial.printf("ðŸ“¨ CMD 0x%02X 0x%02X (%u o)", cls, id, len);
+  // Trace utile au diagnostic : montre ce que l'application demande réellement.
+  Serial.printf("📨 CMD 0x%02X 0x%02X (%u o)", cls, id, len);
   for (uint16_t i = 0; i < len && i < 16; i++)
     Serial.printf(" %02X", pl[i]);
   Serial.println();
 
   if (cls != 0xFF) {
-    // Passerelle transparente vers le rÃ©cepteur u-blox (ex. donnÃ©es AssistNow).
+    // Passerelle transparente vers le récepteur u-blox (ex. données AssistNow).
     if (gpsEnabled) {
       uint8_t hdr[6] = {0xB5, 0x62, cls, id, (uint8_t)(len & 0xFF),
                         (uint8_t)(len >> 8)};
@@ -848,13 +855,13 @@ static void handleCommand(uint8_t cls, uint8_t id, uint8_t *pl, uint16_t len) {
 
   switch (id) {
 
-  // --- 0xFF 0x22 : Ã©tat de l'enregistrement autonome ---
+  // --- 0xFF 0x22 : état de l'enregistrement autonome ---
   case 0x22: {
     uint8_t p[12];
     memset(p, 0, 12);
     p[0] = (recState != REC_STATE_OFF) ? 1 : 0;
     p[1] = totalSlots ? (uint8_t)((usedSlots * 100UL) / totalSlots) : 0;
-    p[2] = 0x00; // sÃ©curitÃ© mÃ©moire dÃ©sactivÃ©e
+    p[2] = 0x00; // sécurité mémoire désactivée
     p[3] = 0;
     writeLittleEndian(p, 4, (uint32_t)usedSlots);
     writeLittleEndian(p, 8, (uint32_t)totalSlots);
@@ -888,7 +895,7 @@ static void handleCommand(uint8_t cls, uint8_t id, uint8_t *pl, uint16_t len) {
       break;
     }
     if (memoryFull) {
-      sendNack(0xFF, 0x25); // plus assez de mÃ©moire libre
+      sendNack(0xFF, 0x25); // plus assez de mémoire libre
       break;
     }
     if (pl[1] > 4) {
@@ -907,12 +914,12 @@ static void handleCommand(uint8_t cls, uint8_t id, uint8_t *pl, uint16_t len) {
     break;
   }
 
-  // --- 0xFF 0x23 : tÃ©lÃ©chargement des donnÃ©es enregistrÃ©es ---
+  // --- 0xFF 0x23 : téléchargement des données enregistrées ---
   case 0x23: {
     if (len >= 1) { // annulation
       if (downloadActive) {
         downloadCursor = downloadEnd;
-        Serial.println("â¹ï¸ TÃ©lÃ©chargement annulÃ©.");
+        Serial.println("⏹️ Téléchargement annulé.");
       }
       break;
     }
@@ -924,16 +931,16 @@ static void handleCommand(uint8_t cls, uint8_t id, uint8_t *pl, uint16_t len) {
     break;
   }
 
-  // --- 0xFF 0x24 : effacement de la mÃ©moire ---
+  // --- 0xFF 0x24 : effacement de la mémoire ---
   case 0x24: {
     if (len >= 1) {
-      // Annulation demandÃ©e. La doc l'autorise (effacement du haut vers le
-      // bas), mais ici le journal est un simple ajout linÃ©aire : s'arrÃªter Ã 
-      // mi-chemin laisserait des secteurs non effacÃ©s devant le pointeur
-      // d'Ã©criture, sur lesquels il serait impossible d'Ã©crire ensuite.
-      // On laisse donc l'effacement se terminer â€” il ne porte que sur la zone
-      // rÃ©ellement utilisÃ©e, donc il est court â€” et l'ACK partira Ã  la fin.
-      Serial.println("â„¹ï¸ Annulation ignorÃ©e : effacement menÃ© Ã  son terme.");
+      // Annulation demandée. La doc l'autorise (effacement du haut vers le
+      // bas), mais ici le journal est un simple ajout linéaire : s'arrêter à
+      // mi-chemin laisserait des secteurs non effacés devant le pointeur
+      // d'écriture, sur lesquels il serait impossible d'écrire ensuite.
+      // On laisse donc l'effacement se terminer — il ne porte que sur la zone
+      // réellement utilisée, donc il est court — et l'ACK partira à la fin.
+      Serial.println("ℹ️ Annulation ignorée : effacement mené à son terme.");
       break;
     }
     if (downloadActive || eraseActive) {
@@ -946,12 +953,12 @@ static void handleCommand(uint8_t cls, uint8_t id, uint8_t *pl, uint16_t len) {
     break;
   }
 
-  // --- 0xFF 0x30 : dÃ©verrouillage mÃ©moire (sÃ©curitÃ© non activÃ©e ici) ---
+  // --- 0xFF 0x30 : déverrouillage mémoire (sécurité non activée ici) ---
   case 0x30:
     sendAck(0xFF, 0x30);
     break;
 
-  // --- 0xFF 0x27 : configuration du rÃ©cepteur GNSS ---
+  // --- 0xFF 0x27 : configuration du récepteur GNSS ---
   case 0x27: {
     if (len == 0) {
       uint8_t p[3] = {recCfg.gnssDynModel, recCfg.gnss3dSpeed,
@@ -973,7 +980,7 @@ static void handleCommand(uint8_t cls, uint8_t id, uint8_t *pl, uint16_t len) {
     break;
   }
 
-  case 0x01: // message de donnÃ©es live : rien Ã  faire s'il nous revient
+  case 0x01: // message de données live : rien à faire s'il nous revient
     break;
 
   default:
@@ -982,15 +989,15 @@ static void handleCommand(uint8_t cls, uint8_t id, uint8_t *pl, uint16_t len) {
   }
 }
 
-// Assemble les octets reÃ§us en trames UBX complÃ¨tes (une notification BLE ne
-// contient pas forcÃ©ment un message entier, ni un seul).
+// Assemble les octets reçus en trames UBX complètes (une notification BLE ne
+// contient pas forcément un message entier, ni un seul).
 static void serviceRxParser() {
 #if RX_DEBUG
-  // Trace brute : distingue Â« rien n'arrive Â» de Â« Ã§a arrive mais ne parse pas Â».
+  // Trace brute : distingue « rien n'arrive » de « ça arrive mais ne parse pas ».
   static uint32_t lastReported = 0;
   if (rxByteCount != lastReported) {
     uint16_t pending = (uint16_t)((rxHead - rxTail) & (RXRING_SIZE - 1));
-    Serial.printf("ðŸ”» RX brut : %lu octets au total, %u en attente :",
+    Serial.printf("🔻 RX brut : %lu octets au total, %u en attente :",
                   (unsigned long)rxByteCount, pending);
     for (uint16_t i = 0; i < pending && i < 24; i++)
       Serial.printf(" %02X", rxRing[(rxTail + i) & (RXRING_SIZE - 1)]);
@@ -1034,7 +1041,7 @@ static void serviceRxParser() {
         if (ckA == asmBuf[6 + plen] && ckB == asmBuf[7 + plen])
           handleCommand(asmBuf[2], asmBuf[3], asmBuf + 6, plen);
         else
-          Serial.println("âš ï¸ Checksum invalide sur une commande reÃ§ue.");
+          Serial.println("⚠️ Checksum invalide sur une commande reçue.");
         asmLen = 0;
       }
     }
@@ -1043,7 +1050,7 @@ static void serviceRxParser() {
 
 // Initialisation de la flash et restauration de la configuration.
 static void setupStorage() {
-  // 1) dÃ©tection automatique via la liste de composants du core
+  // 1) détection automatique via la liste de composants du core
   bool ok = flash.begin();
 #if USE_EXPLICIT_FLASH_DEVICE
   // 2) secours : on impose la description de la P25Q16H
@@ -1051,7 +1058,7 @@ static void setupStorage() {
     ok = flash.begin(&P25Q16H_DEVICE, 1);
 #endif
   if (!ok) {
-    Serial.println("âŒ Flash QSPI non dÃ©tectÃ©e : enregistrement dÃ©sactivÃ©.");
+    Serial.println("❌ Flash QSPI non détectée : enregistrement désactivé.");
     flashReady = false;
     return;
   }
@@ -1060,16 +1067,16 @@ static void setupStorage() {
   if (flashTotalBytes == 0)
     flashTotalBytes = (1UL << 21);
   totalSlots = (flashTotalBytes - DATA_START) / SLOT_SIZE;
-  Serial.printf("ðŸ’¾ Flash %lu Ko | capacitÃ© : %lu enregistrements\n",
+  Serial.printf("💾 Flash %lu Ko | capacité : %lu enregistrements\n",
                 (unsigned long)(flashTotalBytes / 1024),
                 (unsigned long)totalSlots);
 
   if (!loadConfig()) {
-    Serial.println("â„¹ï¸ Aucune configuration valide en mÃ©moire.");
-    // --- AJOUT : ne reformater que si la puce contient rÃ©ellement quelque
-    //     chose. Sur une flash dÃ©jÃ  vierge, un effacement complet coÃ»terait
-    //     30 secondes pendant lesquelles ni le BLE ni les messages sÃ©rie ne
-    //     seraient disponibles â€” au point de faire croire Ã  un plantage.
+    Serial.println("ℹ️ Aucune configuration valide en mémoire.");
+    // --- AJOUT : ne reformater que si la puce contient réellement quelque
+    //     chose. Sur une flash déjà vierge, un effacement complet coûterait
+    //     30 secondes pendant lesquelles ni le BLE ni les messages série ne
+    //     seraient disponibles — au point de faire croire à un plantage.
     bool alreadyBlank = true;
     uint8_t probe[64];
     for (uint32_t addr = 0; addr < flashTotalBytes && alreadyBlank;
@@ -1082,7 +1089,7 @@ static void setupStorage() {
         }
     }
     if (alreadyBlank) {
-      Serial.println("âœ… MÃ©moire dÃ©jÃ  vierge, formatage inutile.");
+      Serial.println("✅ Mémoire déjà vierge, formatage inutile.");
       usedSlots = 0;
       memoryFull = false;
     } else {
@@ -1093,13 +1100,13 @@ static void setupStorage() {
   } else {
     locateWritePointer();
   }
-  Serial.printf("ðŸ’¾ Occupation : %lu / %lu (%lu%%)\n", (unsigned long)usedSlots,
+  Serial.printf("💾 Occupation : %lu / %lu (%lu%%)\n", (unsigned long)usedSlots,
                 (unsigned long)totalSlots,
                 (unsigned long)(totalSlots ? usedSlots * 100 / totalSlots : 0));
 
-  // Estimation de l'autonomie restante Ã  la cadence configurÃ©e.
+  // Estimation de l'autonomie restante à la cadence configurée.
   uint32_t freeSlots = totalSlots - usedSlots;
-  Serial.printf("ðŸ’¾ Reste ~%lu min Ã  %u Hz\n",
+  Serial.printf("💾 Reste ~%lu min à %u Hz\n",
                 (unsigned long)(freeSlots / (60UL * rateToHz(recCfg.dataRate))),
                 rateToHz(recCfg.dataRate));
 }
@@ -1226,9 +1233,9 @@ float getBatteryVoltage() {
 
 // Assemble and transmit the proprietary RaceBox Mini protocol packet
 
-// --- MODIFIÃ‰ : la construction du payload est isolÃ©e pour Ãªtre rÃ©utilisÃ©e
-//     Ã  la fois par l'Ã©mission live (0xFF 0x01) et par l'enregistrement
-//     autonome en mÃ©moire (0xFF 0x21). Le payload est strictement identique
+// --- MODIFIÉ : la construction du payload est isolée pour être réutilisée
+//     à la fois par l'émission live (0xFF 0x01) et par l'enregistrement
+//     autonome en mémoire (0xFF 0x21). Le payload est strictement identique
 //     dans les deux cas, comme sur un vrai Mini S.
 bool buildDataPayload(uint8_t *payload) {
   if (myGNSS.packetUBXNAVPVT == NULL)
@@ -1310,12 +1317,12 @@ bool buildDataPayload(uint8_t *payload) {
   return true;
 }
 
-// Ã‰mission du message live 0xFF 0x01 vers le client connectÃ©.
+// Émission du message live 0xFF 0x01 vers le client connecté.
 void sendLivePacket(const uint8_t *payload) {
   if (!deviceConnected)
     return;
-  // La doc impose de couper les donnÃ©es live pendant un dump mÃ©moire ou un
-  // effacement, pour libÃ©rer toute la bande passante BLE.
+  // La doc impose de couper les données live pendant un dump mémoire ou un
+  // effacement, pour libérer toute la bande passante BLE.
   if (downloadActive || eraseActive)
     return;
 
@@ -1333,13 +1340,13 @@ void sendLivePacket(const uint8_t *payload) {
   packet[86] = ckA;
   packet[87] = ckB;
 
-  // --- CORRIGÃ‰ : tout passe par la file d'Ã©mission. Auparavant les paquets
-  //     live partaient directement par notify() tandis que les rÃ©ponses aux
+  // --- CORRIGÉ : tout passe par la file d'émission. Auparavant les paquets
+  //     live partaient directement par notify() tandis que les réponses aux
   //     commandes transitaient par la file : un paquet live pouvait donc
-  //     s'insÃ©rer au milieu d'une rÃ©ponse fragmentÃ©e et corrompre le flux
-  //     d'octets cÃ´tÃ© client, qui rejetait alors la rÃ©ponse.
-  //     Les donnÃ©es live sont sacrifiables : on garde toujours une rÃ©serve
-  //     libre pour qu'une rÃ©ponse de commande ne soit jamais perdue faute de
+  //     s'insérer au milieu d'une réponse fragmentée et corrompre le flux
+  //     d'octets côté client, qui rejetait alors la réponse.
+  //     Les données live sont sacrifiables : on garde toujours une réserve
+  //     libre pour qu'une réponse de commande ne soit jamais perdue faute de
   //     place dans la file.
   if (txqFree() < 88 + 256)
     return;
@@ -1361,7 +1368,7 @@ void processGNSS() {
       lastITOW = currentITOW;
       gnssUpdateCount++;
 
-      // --- MODIFIÃ‰ : un seul payload construit par point GNSS, utilisÃ©
+      // --- MODIFIÉ : un seul payload construit par point GNSS, utilisé
       //     pour l'enregistrement local ET pour la diffusion BLE.
       uint8_t payload[80];
       if (buildDataPayload(payload)) {
@@ -1393,10 +1400,10 @@ void processIMU() {
 }
 
 // ============================================================================
-// --- ðŸ”‹ POWER & SYSTEM MANAGEMENT ---
+// --- 🔋 POWER & SYSTEM MANAGEMENT ---
 // ============================================================================
 bool resetGpsBaudRate() {
-  Serial.println("ðŸ” Deep Scanning for GNSS activity...");
+  Serial.println("🔍 Deep Scanning for GNSS activity...");
   long bauds[] = {9600, 38400, 115200, 57600};
 
   for (int b = 0; b < 4; b++) {
@@ -1428,7 +1435,7 @@ bool resetGpsBaudRate() {
 
       // Try the library sync
       if (myGNSS.begin(Serial1)) {
-        Serial.println("âœ… UBX Protocol Synced!");
+        Serial.println("✅ UBX Protocol Synced!");
 
         if (bauds[b] != GPS_BAUD) {
           Serial.print("Elevating to ");
@@ -1444,7 +1451,7 @@ bool resetGpsBaudRate() {
         myGNSS.saveConfiguration();
         return true;
       } else {
-        Serial.println("âŒ Bytes received, but u-blox library could not sync "
+        Serial.println("❌ Bytes received, but u-blox library could not sync "
                        "(Check protocol/clones).");
       }
     } else {
@@ -1454,14 +1461,14 @@ bool resetGpsBaudRate() {
     Serial1.end();
   }
 
-  Serial.println("âŒ GNSS not detected. Check VCC voltage or TX/RX wiring.");
+  Serial.println("❌ GNSS not detected. Check VCC voltage or TX/RX wiring.");
   return false;
 }
 
 bool configureGPS() {
   if (!pendingConfig)
     return false;
-  Serial.println("âš™ï¸ Syncing GPS Settings...");
+  Serial.println("⚙️ Syncing GPS Settings...");
   Serial1.begin(GPS_BAUD);
 
   bool detected = false;
@@ -1484,7 +1491,7 @@ bool configureGPS() {
   // Used Airborne2g since passenger track cars (GT3/GT4) easily exceed 1g
   // braking/cornering and we do not want the navigation engine to "smooth" or
   // reject these forces as anomalies.
-  // --- MODIFIÃ‰ : valeur par dÃ©faut inchangÃ©e (Airborne2g, choix volontaire de
+  // --- MODIFIÉ : valeur par défaut inchangée (Airborne2g, choix volontaire de
   //     l'auteur pour la piste), mais l'app peut la changer via 0xFF 0x27.
   myGNSS.setDynamicModel((dynModel)recCfg.gnssDynModel);
 
@@ -1545,8 +1552,8 @@ bool configureGPS() {
 #endif
 
   // Now that extraneous constellations are OFF, we can safely request 25Hz
-  // --- MODIFIÃ‰ : si une session est configurÃ©e Ã  10/5/1 Hz, il ne faut pas
-  //     que cette reconfiguration la ramÃ¨ne de force Ã  25 Hz.
+  // --- MODIFIÉ : si une session est configurée à 10/5/1 Hz, il ne faut pas
+  //     que cette reconfiguration la ramène de force à 25 Hz.
   {
     uint8_t navHz =
         recCfg.enabled ? rateToHz(recCfg.dataRate) : MAX_NAVIGATION_RATE;
@@ -1554,7 +1561,7 @@ bool configureGPS() {
   }
 
   pendingConfig = false;
-  Serial.println("âœ… Configuration complete.");
+  Serial.println("✅ Configuration complete.");
   return true;
 }
 
@@ -1628,7 +1635,13 @@ void enableIMU() {
     return;
   IMU.settings.accelSampleRate = 1660; // 1.6kHz for hardware filtering
   IMU.settings.gyroSampleRate = 1660;
-  IMU.settings.accelRange = 8;
+  // --- MODIFIÉ : ±16 g au lieu de ±8 g. Sur une voiture RC, les chocs
+  //     d'atterrissage de saut saturaient l'échelle ±8 g : les relevés
+  //     plafonnaient alors à 7,99 g sur les trois axes simultanément, ce qui
+  //     masquait la valeur réelle. La contrepartie est une résolution deux
+  //     fois moins fine (0,488 mg par pas au lieu de 0,244), négligeable
+  //     devant l'amplitude mesurée ici.
+  IMU.settings.accelRange = 16;
   IMU.settings.gyroRange = 500;
 
   if (IMU.begin() != 0)
@@ -1691,8 +1704,8 @@ void managePower() {
   }
 
   // Determine if sensors should be active
-  // --- MODIFIÃ‰ : un enregistrement autonome doit continuer mÃªme sans client
-  //     BLE connectÃ© â€” c'est tout l'intÃ©rÃªt du mode Mini S.
+  // --- MODIFIÉ : un enregistrement autonome doit continuer même sans client
+  //     BLE connecté — c'est tout l'intérêt du mode Mini S.
   bool shouldBeActive = deviceConnected ||
                         (currentlyPluggedIn && !SLEEP_WHILE_CHARGING) ||
                         (recState != REC_STATE_OFF);
@@ -1712,13 +1725,13 @@ void managePower() {
   }
 
   // Hot-State Timeout (Keep GPS active for a window after usage)
-  // --- MODIFIÃ‰ : ne jamais redÃ©marrer le MCU pendant un enregistrement,
+  // --- MODIFIÉ : ne jamais redémarrer le MCU pendant un enregistrement,
   //     cela couperait la session en cours.
   if (!deviceConnected && gpsEnabled && SLEEP_WHILE_CHARGING &&
       recState == REC_STATE_OFF) {
     if (millis() - lastDisconnectTime > GPS_HOT_TIMEOUT_MS) {
       Serial.printf(
-          "â° GPS Hot Timeout Reached. Rebooting to clear hardware state...\n");
+          "⏰ GPS Hot Timeout Reached. Rebooting to clear hardware state...\n");
       Serial.flush();
       delay(10);
 
@@ -1784,7 +1797,7 @@ void reportSystemStats() {
   Serial.printf("POWER   | Bat: %d%% (%0.2fV) \n", currentBatteryPercentage,
                 getBatteryVoltage());
   Serial.printf("STATE   | Charging: %s | USB: %s | BLE: %s | BAT: %s\n",
-                isCharging() ? "YES âš¡" : "NO ðŸ”‹",
+                isCharging() ? "YES ⚡" : "NO 🔋",
                 isPluggedIn() ? "CONNECTED" : "DISCONNECTED",
                 deviceConnected ? "CONNECTED" : "IDLE",
                 batteryConnected ? "PRESENT" : "MISSING");
@@ -1795,15 +1808,16 @@ void reportSystemStats() {
         myGNSS.packetUBXNAVPVT->data.fixType);
   }
 
-  // --- AJOUT : Ã©tat du stockage, visible en permanence. Ã‰vite de dÃ©pendre
-  //     des messages de setup(), souvent manquÃ©s car le moniteur sÃ©rie se
-  //     reconnecte aprÃ¨s la rÃ©-Ã©numÃ©ration USB qui suit le reset.
+  // --- AJOUT : état du stockage, visible en permanence. Évite de dépendre
+  //     des messages de setup(), souvent manqués car le moniteur série se
+  //     reconnecte après la ré-énumération USB qui suit le reset.
+  Serial.printf("BUILD   | %s · %s · accel ±16 g\n", FIRMWARE_VER, BUILD_STAMP);
   if (!flashReady) {
-    Serial.println("MEMORY  | âŒ Flash QSPI NON dÃ©tectÃ©e (enregistrement off)");
+    Serial.println("MEMORY  | ❌ Flash QSPI NON détectée (enregistrement off)");
   } else {
     const char *st = (recState == REC_STATE_RUNNING)   ? "EN COURS"
                      : (recState == REC_STATE_PAUSED)  ? "EN PAUSE"
-                                                       : "arrÃªtÃ©";
+                                                       : "arrêté";
     uint32_t freeSlots = totalSlots - usedSlots;
     Serial.printf("MEMORY  | %lu/%lu (%lu%%) | REC: %s @%uHz | reste ~%lu min\n",
                   (unsigned long)usedSlots, (unsigned long)totalSlots,
@@ -1824,9 +1838,9 @@ void updateLEDs(uint8_t fixType) {
   static unsigned long lastBlink = 0;
   static bool ledState = false;
 
-  // --- AJOUT : tÃ©moin d'enregistrement autonome. Sans client connectÃ©, la
+  // --- AJOUT : témoin d'enregistrement autonome. Sans client connecté, la
   //     LED bleue est libre : un flash bref toutes les 3 s indique que la
-  //     session tourne, un double flash rapide que la mÃ©moire est pleine.
+  //     session tourne, un double flash rapide que la mémoire est pleine.
   if (!deviceConnected) {
     static unsigned long recBlinkRef = 0;
     unsigned long phase = millis() % 3000;
@@ -1889,7 +1903,7 @@ void connect_callback(uint16_t conn_handle) {
   lastDisconnectTime = millis();
 
   digitalWrite(OnboardledPin, LOW); // Solid Blue ON when connected
-  Serial.println("âœ… Client connected!");
+  Serial.println("✅ Client connected!");
 
   // Bumping TX power back to 0 dBm for a stable, high-range connection
   Bluefruit.setTxPower(0);
@@ -1901,9 +1915,9 @@ void connect_callback(uint16_t conn_handle) {
   uint16_t mtu = Bluefruit.Connection(conn_handle)->getMtu();
   Serial.printf(">> Negotiated MTU = %u (need >= 91 to fit 88-byte notify)\n", mtu);
 
-  // --- AJOUT : le MTU sert Ã  dimensionner les notifications du dump mÃ©moire.
+  // --- AJOUT : le MTU sert à dimensionner les notifications du dump mémoire.
   negotiatedMtu = mtu;
-  // La doc prÃ©cise que le verrou mÃ©moire est rÃ©initialisÃ© Ã  chaque connexion.
+  // La doc précise que le verrou mémoire est réinitialisé à chaque connexion.
   asmLen = 0;
   rxTail = rxHead;
   txqTail = txqHead;
@@ -1920,21 +1934,21 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   // --- AJOUT : un dump en cours n'a plus de destinataire.
   if (downloadActive) {
     downloadActive = false;
-    Serial.println("â¹ï¸ TÃ©lÃ©chargement interrompu (dÃ©connexion).");
+    Serial.println("⏹️ Téléchargement interrompu (déconnexion).");
   }
   txqTail = txqHead;
   asmLen = 0;
 
-  Serial.println("âŒ BLE Client disconnected.");
-  Serial.printf("ðŸ›°ï¸ GPS staying hot for %d minutes...\n",
+  Serial.println("❌ BLE Client disconnected.");
+  Serial.printf("🛰️ GPS staying hot for %d minutes...\n",
                 (GPS_HOT_TIMEOUT_MS / 60000));
 }
 
 void write_callback(uint16_t conn_handle, BLECharacteristic *chr, uint8_t *data,
                     uint16_t len) {
-  // --- MODIFIÃ‰ : on ne fait qu'empiler les octets ici. Ce callback tourne
-  //     dans le contexte du SoftDevice : aucun accÃ¨s flash ni traitement long
-  //     ne doit y Ãªtre fait. L'assemblage des trames se fait dans loop().
+  // --- MODIFIÉ : on ne fait qu'empiler les octets ici. Ce callback tourne
+  //     dans le contexte du SoftDevice : aucun accès flash ni traitement long
+  //     ne doit y être fait. L'assemblage des trames se fait dans loop().
   for (uint16_t i = 0; i < len; i++) {
     uint16_t next = (rxHead + 1) & (RXRING_SIZE - 1);
     if (next == rxTail)
@@ -1949,7 +1963,7 @@ void setIMUForSleep() {
   IMU.settings.gyroEnabled = 0;
   IMU.settings.accelEnabled = 0;
   IMU.begin();
-  // 52Hz, Â±2g
+  // 52Hz, ±2g
   IMU.writeRegister(LSM6DS3_ACC_GYRO_CTRL1_XL, 0x30);
   // Enable tap detection
   IMU.writeRegister(LSM6DS3_ACC_GYRO_TAP_CFG1, 0x8E);
@@ -1966,7 +1980,7 @@ void setIMUForSleep() {
 }
 
 void enterDeepSleep() {
-  Serial.println("ðŸ’¤ Entering Deep Sleep (Shake to Wake)...");
+  Serial.println("💤 Entering Deep Sleep (Shake to Wake)...");
   Bluefruit.autoConnLed(false);
 
   // Turn off all LEDs
@@ -2045,10 +2059,10 @@ void setupBLE() {
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
   Bluefruit.Periph.setConnInterval(12, 24);
 
-  // --- AJOUT : service de mise Ã  jour sans fil (OTA DFU).
-  //     Permet de reflasher l'appareil depuis un tÃ©lÃ©phone Android avec
-  //     l'application Â« nRF Device Firmware Update Â», sans cÃ¢ble ni bouton.
-  //     Adafruit impose que ce service soit dÃ©clarÃ© EN PREMIER.
+  // --- AJOUT : service de mise à jour sans fil (OTA DFU).
+  //     Permet de reflasher l'appareil depuis un téléphone Android avec
+  //     l'application « nRF Device Firmware Update », sans câble ni bouton.
+  //     Adafruit impose que ce service soit déclaré EN PREMIER.
 #if ENABLE_OTA_DFU
   bledfu.begin();
 #endif
@@ -2057,10 +2071,10 @@ void setupBLE() {
   disService.begin();
   disModel.setProperties(CHR_PROPS_READ);
   disModel.begin();
-  // --- CORRIGÃ‰ : la doc RaceBox impose que cette caractÃ©ristique contienne
-  //     exactement "RaceBox Mini", "RaceBox Mini S" ou "RaceBox Micro" â€”
-  //     PAS le nom complet avec le numÃ©ro de sÃ©rie. C'est sur cette chaÃ®ne
-  //     que l'app dÃ©cide d'afficher ou non les fonctions de mÃ©moire.
+  // --- CORRIGÉ : la doc RaceBox impose que cette caractéristique contienne
+  //     exactement "RaceBox Mini", "RaceBox Mini S" ou "RaceBox Micro" —
+  //     PAS le nom complet avec le numéro de série. C'est sur cette chaîne
+  //     que l'app décide d'afficher ou non les fonctions de mémoire.
   disModel.write(MODEL_STRING);
   disSerial.setProperties(CHR_PROPS_READ);
   disSerial.begin();
@@ -2068,7 +2082,7 @@ void setupBLE() {
   disFirmware.setProperties(CHR_PROPS_READ);
   disFirmware.begin();
   disFirmware.write(FIRMWARE_VER);
-  // --- AJOUT : disHardware Ã©tait dÃ©clarÃ© mais jamais initialisÃ©.
+  // --- AJOUT : disHardware était déclaré mais jamais initialisé.
   disHardware.setProperties(CHR_PROPS_READ);
   disHardware.begin();
   disHardware.write(HARDWARE_VER);
@@ -2088,10 +2102,10 @@ void setupBLE() {
 
   rbRx.setProperties(CHR_PROPS_WRITE | CHR_PROPS_WRITE_WO_RESP);
   rbRx.setPermission(SECMODE_OPEN, SECMODE_OPEN);
-  // --- CORRIGÃ‰ : sans setMaxLen(), Bluefruit limite la caractÃ©ristique Ã 
-  //     20 octets. Toute Ã©criture plus longue est rejetÃ©e par le SoftDevice
-  //     SANS dÃ©clencher le callback : les commandes de l'app passaient donc
-  //     totalement inaperÃ§ues.
+  // --- CORRIGÉ : sans setMaxLen(), Bluefruit limite la caractéristique à
+  //     20 octets. Toute écriture plus longue est rejetée par le SoftDevice
+  //     SANS déclencher le callback : les commandes de l'app passaient donc
+  //     totalement inaperçues.
   rbRx.setMaxLen(247);
   rbRx.setWriteCallback(write_callback);
   rbRx.begin();
@@ -2103,21 +2117,23 @@ void setupBLE() {
 void setup() {
   Serial.begin(115200);
   delay(1000);
-  Serial.println("\n\nðŸš€ SYSTEM STARTUP");
+  Serial.println("\n\n🚀 SYSTEM STARTUP");
+  Serial.printf("   Firmware %s · compilé le %s\n", FIRMWARE_VER, BUILD_STAMP);
+  Serial.println("   Commandes série : s=stop  i=état  z=config par défaut  ?=aide");
 
   setupHardware();
 
-  // --- AJOUT : la flash doit Ãªtre prÃªte avant tout le reste, car la config
-  //     d'enregistrement qui y est stockÃ©e conditionne l'Ã©tat de dÃ©marrage.
+  // --- AJOUT : la flash doit être prête avant tout le reste, car la config
+  //     d'enregistrement qui y est stockée conditionne l'état de démarrage.
   setupStorage();
 
-  Serial.println("ðŸ” Checking power source...");
+  Serial.println("🔍 Checking power source...");
   isNoBatteryMode = detectNoBatteryAtBoot();
   if (isNoBatteryMode) {
     batteryConnected = false;
-    Serial.println("âš ï¸ NO BATTERY DETECTED! Booting in USB Always-On mode.");
+    Serial.println("⚠️ NO BATTERY DETECTED! Booting in USB Always-On mode.");
   } else {
-    Serial.println("ðŸ”‹ Battery detected! Booting in standard/Eco mode.");
+    Serial.println("🔋 Battery detected! Booting in standard/Eco mode.");
   }
 
   updateBatteryState();
@@ -2137,7 +2153,7 @@ void setup() {
   }
 
   if (IMU.begin() != 0) {
-    Serial.println("âŒ IMU Init Failed");
+    Serial.println("❌ IMU Init Failed");
   } else {
     imuEnabled = true;
     if (!isNoBatteryMode)
@@ -2150,11 +2166,11 @@ void setup() {
   if (isNoBatteryMode) {
     setupAdvertising(0, FAST_ADV_INTERVAL);
     enableGPS(); // Keep it hot from the start
-    Serial.println("ðŸ“¡ BLE Broadcast Started (FAST - Always On).");
+    Serial.println("📡 BLE Broadcast Started (FAST - Always On).");
   } else {
     setupAdvertising(LOW_POWER_BT_TX_POWER, ECO_ADV_INTERVAL);
     disableGPS();
-    Serial.println("ðŸ“¡ BLE Broadcast Started (ECO).");
+    Serial.println("📡 BLE Broadcast Started (ECO).");
   }
 
   // Initialize Activity Trackers to current time to prevent immediate timeouts
@@ -2163,19 +2179,19 @@ void setup() {
   lastDisconnectTime = millis();
   lastGpsRateCheckTime = millis();
 
-  // --- AJOUT : comme un vrai Mini S / Micro, la configuration survit Ã  une
-  //     coupure d'alimentation. Si l'enregistrement Ã©tait actif, on reprend
-  //     tout seul, sans avoir besoin du tÃ©lÃ©phone.
-  // --- SÃ‰CURITÃ‰ : une configuration marquÃ©e Â« active Â» au dÃ©marrage signifie
-  //     que la session prÃ©cÃ©dente ne s'est pas terminÃ©e proprement â€” coupure
-  //     d'alimentation, batterie arrachÃ©e, redÃ©marrage. Reprendre seul
-  //     rallumerait le GPS et rendrait l'appareil difficile Ã  reprendre en
-  //     main. On repart donc Ã  l'arrÃªt, sans jamais toucher aux donnÃ©es dÃ©jÃ 
-  //     enregistrÃ©es, qui restent intÃ©gralement tÃ©lÃ©chargeables.
+  // --- AJOUT : comme un vrai Mini S / Micro, la configuration survit à une
+  //     coupure d'alimentation. Si l'enregistrement était actif, on reprend
+  //     tout seul, sans avoir besoin du téléphone.
+  // --- SÉCURITÉ : une configuration marquée « active » au démarrage signifie
+  //     que la session précédente ne s'est pas terminée proprement — coupure
+  //     d'alimentation, batterie arrachée, redémarrage. Reprendre seul
+  //     rallumerait le GPS et rendrait l'appareil difficile à reprendre en
+  //     main. On repart donc à l'arrêt, sans jamais toucher aux données déjà
+  //     enregistrées, qui restent intégralement téléchargeables.
   if (flashReady && recCfg.enabled) {
 #if AUTO_RESUME_RECORDING
     if (!memoryFull) {
-      Serial.println("âºï¸ Reprise de l'enregistrement autonome.");
+      Serial.println("⏺️ Reprise de l'enregistrement autonome.");
       recState = REC_STATE_RUNNING;
       anyDataSinceEnable = false;
       slowSinceMs = 0;
@@ -2186,14 +2202,14 @@ void setup() {
       enableIMU();
       announceStateChange(REC_STATE_RUNNING, true);
     } else {
-      Serial.println("âš ï¸ MÃ©moire pleine : enregistrement non repris.");
+      Serial.println("⚠️ Mémoire pleine : enregistrement non repris.");
       recCfg.enabled = 0;
       saveConfig();
     }
 #else
-    Serial.println("âš ï¸ Session prÃ©cÃ©dente interrompue anormalement.");
-    Serial.println("   Enregistrement laissÃ© Ã  l'arrÃªt par sÃ©curitÃ©.");
-    Serial.printf("   %lu points conservÃ©s et tÃ©lÃ©chargeables.\n",
+    Serial.println("⚠️ Session précédente interrompue anormalement.");
+    Serial.println("   Enregistrement laissé à l'arrêt par sécurité.");
+    Serial.printf("   %lu points conservés et téléchargeables.\n",
                   (unsigned long)usedSlots);
     recCfg.enabled = 0;
     recState = REC_STATE_OFF;
@@ -2211,9 +2227,9 @@ void setup() {
   }
 }
 
-// --- SÃ‰CURITÃ‰ : commandes de secours au clavier, dans le moniteur sÃ©rie.
+// --- SÉCURITÉ : commandes de secours au clavier, dans le moniteur série.
 //     Permettent de reprendre la main sur un appareil parti en enregistrement
-//     sans avoir Ã  le reflasher.
+//     sans avoir à le reflasher.
 static void serviceSerialCommands() {
   while (Serial.available()) {
     char c = Serial.read();
@@ -2221,7 +2237,7 @@ static void serviceSerialCommands() {
       continue;
     switch (c) {
     case 's': // stop d'urgence
-      Serial.println("ðŸ›‘ ArrÃªt d'urgence demandÃ©.");
+      Serial.println("🛑 Arrêt d'urgence demandé.");
       if (recState != REC_STATE_OFF)
         stopRecording();
       else {
@@ -2230,39 +2246,39 @@ static void serviceSerialCommands() {
         Serial.println("   (aucun enregistrement en cours)");
       }
       break;
-    case 'i': // Ã©tat complet
-      Serial.printf("Ã‰TAT | flash %s | %lu/%lu points | REC %s @%uHz | "
+    case 'i': // état complet
+      Serial.printf("ÉTAT | flash %s | %lu/%lu points | REC %s @%uHz | "
                     "config seq %lu (exemplaire %c)\n",
                     flashReady ? "OK" : "absente", (unsigned long)usedSlots,
                     (unsigned long)totalSlots,
                     recState == REC_STATE_RUNNING   ? "en cours"
                     : recState == REC_STATE_PAUSED  ? "en pause"
-                                                    : "arrÃªtÃ©",
+                                                    : "arrêté",
                     rateToHz(recCfg.dataRate), (unsigned long)recCfg.seq,
                     lastMetaSlot ? 'B' : 'A');
       break;
-    case 'z': // remise Ã  zÃ©ro de la configuration
-      Serial.println("â™»ï¸ Configuration rÃ©initialisÃ©e (donnÃ©es conservÃ©es).");
+    case 'z': // remise à zéro de la configuration
+      Serial.println("♻️ Configuration réinitialisée (données conservées).");
       if (recState != REC_STATE_OFF)
         stopRecording();
       defaultConfig();
       saveConfig();
       break;
-    case 'd': // redÃ©marrage en mode mise Ã  jour sans fil
-      Serial.println("ðŸ“¡ RedÃ©marrage en mode OTA DFU...");
-      Serial.println("   Cherchez Â« AdaDFU Â» depuis l'application nRF DFU.");
+    case 'd': // redémarrage en mode mise à jour sans fil
+      Serial.println("📡 Redémarrage en mode OTA DFU...");
+      Serial.println("   Cherchez « AdaDFU » depuis l'application nRF DFU.");
       Serial.flush();
       delay(100);
-      // 0xA8 est le code que le bootloader Adafruit interprÃ¨te comme
-      // Â« dÃ©marrer en mise Ã  jour sans fil Â». Avec le SoftDevice actif, le
-      // registre doit Ãªtre Ã©crit par appel systÃ¨me.
+      // 0xA8 est le code que le bootloader Adafruit interprète comme
+      // « démarrer en mise à jour sans fil ». Avec le SoftDevice actif, le
+      // registre doit être écrit par appel système.
       sd_power_gpregret_clr(0, 0xFF);
       sd_power_gpregret_set(0, 0xA8);
       NVIC_SystemReset();
       break;
     case '?':
-      Serial.println("Commandes : s=stop d'urgence  i=Ã©tat  z=config par "
-                     "dÃ©faut  d=mise Ã  jour sans fil  ?=aide");
+      Serial.println("Commandes : s=stop d'urgence  i=état  z=config par "
+                     "défaut  d=mise à jour sans fil  ?=aide");
       break;
     default:
       break;
@@ -2273,15 +2289,15 @@ static void serviceSerialCommands() {
 void loop() {
   serviceSerialCommands(); // secours clavier : toujours en premier
   // --- AJOUT : le protocole passe avant tout, y compris en veille, sinon une
-  //     commande envoyÃ©e par l'app resterait sans rÃ©ponse pendant 2,5 s.
-  serviceRxParser(); // assemble les trames reÃ§ues et exÃ©cute les commandes
+  //     commande envoyée par l'app resterait sans réponse pendant 2,5 s.
+  serviceRxParser(); // assemble les trames reçues et exécute les commandes
   serviceErase();    // effacement progressif, avec notifications de %
-  serviceDownload(); // dump mÃ©moire vers l'app
-  txqService();      // vidange de la file d'Ã©mission BLE
+  serviceDownload(); // dump mémoire vers l'app
+  txqService();      // vidange de la file d'émission BLE
   serviceAutoShutdown();
 
-  // --- MODIFIÃ‰ : on ne part jamais en veille pendant un enregistrement,
-  //     un tÃ©lÃ©chargement ou un effacement.
+  // --- MODIFIÉ : on ne part jamais en veille pendant un enregistrement,
+  //     un téléchargement ou un effacement.
   bool busy = (recState != REC_STATE_OFF) || downloadActive || eraseActive;
   bool idle = !deviceConnected && !gpsEnabled && !imuEnabled && !busy;
 
