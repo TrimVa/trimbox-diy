@@ -980,6 +980,19 @@ static void handleCommand(uint8_t cls, uint8_t id, uint8_t *pl, uint16_t len) {
     break;
   }
 
+  // --- 0xFF 0xF0 : identification du firmware (extension propriétaire) ---
+  // Non prévu par le protocole RaceBox : un appareil d'origine répondrait
+  // par un refus, ce que la console interprète sans erreur.
+  case 0xF0: {
+    char info[96];
+    int n = snprintf(info, sizeof(info), "%s|%s|%s|%u",
+                     MODEL_STRING, FIRMWARE_VER, BUILD_STAMP, 16u);
+    if (n < 0) n = 0;
+    if (n > (int)sizeof(info)) n = sizeof(info);
+    sendUbx(0xFF, 0xF0, (const uint8_t *)info, (uint16_t)n);
+    break;
+  }
+
   case 0x01: // message de données live : rien à faire s'il nous revient
     break;
 
