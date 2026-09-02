@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E7E9E4">
+<title>TrimBox DIY</title>
+<style>
+:root{
+  --paper:#E7E9E4; --panel:#F3F4F0; --ink:#151812; --graphite:#61665C;
+  --rule:#C6CABF; --signal:#2F3BE0; --ok:#1B7A4B;
+  --display:"Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  --mono:ui-monospace,"Roboto Mono","DejaVu Sans Mono",monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:15px;line-height:1.5;padding:0 0 env(safe-area-inset-bottom)}
+.wrap{max-width:620px;margin:0 auto;padding:22px 14px 48px}
+header{border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:20px}
+h1{font-family:var(--display);font-size:30px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;margin:0}
+.tag{font-family:var(--mono);font-size:11px;color:var(--graphite);
+  letter-spacing:.06em;margin-top:4px}
+a.card{display:block;text-decoration:none;color:inherit;background:var(--panel);
+  border:1px solid var(--rule);border-radius:2px;padding:16px;margin-bottom:12px;
+  transition:border-color .12s}
+a.card:hover,a.card:focus-visible{border-color:var(--signal);outline:none}
+a.card h2{font-family:var(--display);font-size:17px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;margin:0 0 6px;
+  display:flex;align-items:center;gap:9px}
+a.card p{margin:0;font-size:14px;color:var(--graphite)}
+.pill{font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;padding:2px 7px;border-radius:2px;
+  background:var(--ink);color:var(--panel);font-weight:400}
+.pill.demo{background:var(--signal)}
+.note{font-size:13px;color:var(--graphite);border-top:1px solid var(--rule);
+  padding-top:16px;margin-top:22px}
+.note h3{font-family:var(--display);font-size:12px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--graphite);margin:0 0 8px}
+.note ul{margin:0;padding-left:19px}
+.note li{margin-bottom:6px}
+code{font-family:var(--mono);font-size:12px;background:var(--panel);
+  border:1px solid var(--rule);padding:1px 5px;border-radius:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>TrimBox DIY</h1>
+    <div class="tag">Télémétrie GPS et inertielle pour voitures RC</div>
+  </header>
+
+  <a class="card" href="trimbox-diy-console.html">
+    <h2>Console <span class="pill">Bluetooth</span></h2>
+    <p>Pilotage de l'appareil, téléchargement des sessions et analyse.
+       Nécessite Chrome sur Android, ou un ordinateur compatible Bluetooth Web.</p>
+  </a>
+
+  <a class="card" href="trimbox-diy-console-demo.html">
+    <h2>Démonstration <span class="pill demo">sans matériel</span></h2>
+    <p>Même interface, alimentée par des données simulées. Fonctionne dans
+       n'importe quel navigateur, sans appareil ni Bluetooth.</p>
+  </a>
+
+  <div class="note">
+    <h3>Bon à savoir</h3>
+    <ul>
+      <li>Ajoutez la console à l'écran d'accueil depuis le menu de Chrome :
+          elle se lance alors comme une application.</li>
+      <li>Une fois chargée, elle fonctionne <strong>hors ligne</strong>.
+          Seul le fond satellite demande une connexion.</li>
+      <li>Sur Android, la localisation doit être activée : le système
+          l'exige pour autoriser la recherche Bluetooth, même si aucune
+          position n'est utilisée.</li>
+      <li>Le numéro de version s'affiche sous le titre de la console. S'il
+          ne change pas après une mise à jour, videz le cache du site.</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>
