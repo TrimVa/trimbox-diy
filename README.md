@@ -18,8 +18,10 @@ n'est nécessaire pour produire un firmware et le flasher depuis un téléphone.
 ```
 trimbox_diy/
     trimbox_diy.ino                 ← firmware
-trimbox-diy-console.html            ← console Bluetooth (usage réel)
-trimbox-diy-console-demo.html       ← démonstration, sans matériel
+index.html                          ← page d'accueil (liens vers la console)
+trimbox-diy-console.html            ← console : Bluetooth + démo intégrée
+trimbox-diy-console-demo.html       ← redirection (anciens liens partagés)
+trimbox-sw.js                       ← service worker, optionnel (voir PWA)
 .github/workflows/build.yml         ← compilation automatique
 ```
 
@@ -176,18 +178,17 @@ clé de cache.
 
 ## Console web
 
-Les deux fichiers HTML sont autonomes : aucune dépendance externe, aucune
-installation. Le fond satellite est la seule fonction qui demande une
-connexion.
+Un seul fichier, autonome : aucune dépendance externe. Un commutateur
+**Bluetooth / Démo** en haut de page choisit la source des données — la démo
+n'est plus un fichier séparé, mais un mode intégré, avec ses propres sessions
+simulées (deux circuits et un passage en ligne droite pour tester le mode
+Dragster). `trimbox-diy-console-demo.html` ne sert plus qu'à rediriger les
+anciens liens partagés vers `trimbox-diy-console.html?demo=1`, qui bascule sur
+la démo et la lance automatiquement.
 
-Le Bluetooth Web exige une **origine sécurisée** : hébergez
-`trimbox-diy-console.html` via GitHub Pages (*Settings → Pages → branche
-`main`*) et ajoutez la page à l'écran d'accueil depuis Chrome. Elle fonctionne
-ensuite hors ligne.
-
-`trimbox-diy-console-demo.html` simule un appareil complet — données en
-direct, mémoire, sessions, tracé — et s'ouvre dans n'importe quel navigateur,
-y compris sur un ordinateur sans Bluetooth.
+Le Bluetooth Web exige une **origine sécurisée** : hébergez le fichier via
+GitHub Pages (*Settings → Pages → branche `main`*). Le fond satellite est la
+seule fonction qui demande ensuite une connexion.
 
 ### Fonctions
 
@@ -197,9 +198,24 @@ y compris sur un ordinateur sans Bluetooth.
 - Export **VBO** (RaceChrono Pro, Circuit Tools), **CSV** et **GPX**
 - Import de fichiers déjà exportés, pour analyse ou comparaison
 - Tracé coloré par vitesse, fond satellite, zoom et déplacement
-- Ligne d'arrivée et chronométrage au tour
+- Ligne de départ et d'arrivée indépendantes (tracé ouvert), ou une seule
+  ligne pour un chronométrage au tour classique
+- Mode Dragster : chronos 0 → vitesse et chronos de passage, paramétrables
 - Statistiques de passage au survol, tours confondus
 - Comparaison de plusieurs sessions, profils et trajectoires superposés
+
+### Installation en application (PWA)
+
+Le manifeste et les icônes sont intégrés directement dans le fichier HTML
+(aucun dossier d'images séparé) : ça suffit à faire apparaître **Installer
+l'application** dans le menu de Chrome, sur téléphone comme sur PC.
+
+`trimbox-sw.js` est optionnel et à déposer **à côté** de la console (même
+dossier, même origine — un service worker ne peut pas être chargé depuis un
+autre domaine ni intégré en ligne dans le HTML, c'est une contrainte de la
+plateforme web). Sans lui, tout fonctionne normalement ; avec lui, la page se
+charge instantanément même hors ligne dès la deuxième visite, et Chrome
+propose l'installation de lui-même plutôt que d'attendre un geste manuel.
 
 ### Format de trame
 
