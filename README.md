@@ -18,9 +18,7 @@ n'est nécessaire pour produire un firmware et le flasher depuis un téléphone.
 ```
 trimbox_diy/
     trimbox_diy.ino                 ← firmware
-index.html                          ← page d'accueil (liens vers la console)
-trimbox-diy-console.html            ← console : Bluetooth + démo intégrée
-trimbox-diy-console-demo.html       ← redirection (anciens liens partagés)
+index.html                          ← console : Bluetooth + démo intégrée
 trimbox-sw.js                       ← service worker, optionnel (voir PWA)
 .github/workflows/build.yml         ← compilation automatique
 ```
